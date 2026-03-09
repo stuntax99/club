@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagramme — Club Blitzstream</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Raleway:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: radial-gradient(ellipse at 40% 30%, #0e0e1c 0%, #050507 100%);
+  min-height:100vh; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:32px 24px; gap:20px; font-family:'Raleway',sans-serif;
+}
+
+/* ── CONTROLS ── */
+.controls {
+  width:500px;
+  background:linear-gradient(155deg,#17172a,#0e0e18);
+  border-radius:16px; border:1px solid rgba(212,168,67,.15);
+  padding:20px 24px; display:flex; flex-direction:column; gap:14px;
+}
+.controls-title {
+  font-size:10px; font-weight:600; letter-spacing:3px;
+  text-transform:uppercase; color:rgba(212,168,67,.5);
+}
+.fen-row { display:flex; gap:10px; }
+.fen-input {
+  flex:1; background:rgba(255,255,255,.04);
+  border:1px solid rgba(212,168,67,.2); border-radius:10px;
+  padding:10px 14px; font-family:'Raleway',sans-serif; font-size:11px;
+  color:#c8bea4; outline:none; transition:border-color .2s;
+}
+.fen-input::placeholder { color:rgba(200,190,164,.3); }
+.fen-input:focus { border-color:rgba(212,168,67,.5); }
+.fen-error { font-size:10px; color:#e07070; display:none; }
+.btn {
+  font-family:'Raleway',sans-serif; font-size:11px; font-weight:600;
+  letter-spacing:1px; border:none; border-radius:10px;
+  padding:10px 18px; cursor:pointer; transition:all .2s; white-space:nowrap;
+}
+.btn-gold { background:linear-gradient(135deg,#d4a843,#c49530); color:#0b0b14; }
+.btn-gold:hover { background:linear-gradient(135deg,#e0b84e,#d4a843); transform:translateY(-1px); }
+.btn-outline { background:rgba(212,168,67,.08); border:1px solid rgba(212,168,67,.25); color:#d4a843; }
+.btn-outline:hover { background:rgba(212,168,67,.15); transform:translateY(-1px); }
+.actions-row { display:flex; gap:10px; }
+
+/* ── ORIENTATION ── */
+.ctrl-row { display:flex; align-items:center; gap:12px; }
+.ctrl-label { font-size:9px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:rgba(212,168,67,.4); width:80px; flex-shrink:0; }
+.toggle-group { display:flex; gap:6px; }
+.toggle { font-family:'Raleway',sans-serif; font-size:10px; font-weight:600; padding:6px 12px; border-radius:8px; border:1px solid rgba(212,168,67,.15); background:rgba(255,255,255,.03); color:#5a5570; cursor:pointer; transition:all .2s; }
+.toggle.active { background:rgba(212,168,67,.14); border-color:rgba(212,168,67,.4); color:#d4a843; }
+.toggle:hover:not(.active) { background:rgba(212,168,67,.07); color:#a0956e; }
+
+/* ── CARD ── */
+.card {
+  width:500px;
+  background:linear-gradient(155deg,#17172a 0%,#0e0e18 60%,#0b0b14 100%);
+  border-radius:22px; overflow:hidden; position:relative;
+  box-shadow:0 0 0 1px rgba(212,168,67,.18),0 0 60px rgba(212,168,67,.07),0 30px 90px rgba(0,0,0,.8);
+  animation:appear .6s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes appear { from{opacity:0;transform:translateY(14px) scale(.98)} to{opacity:1;transform:none} }
+.card::before { content:''; display:block; height:2px; background:linear-gradient(90deg,transparent,#d4a843,#f0c96a,#d4a843,transparent); }
+.card::after { content:''; position:absolute; inset:0; border-radius:22px; background:radial-gradient(ellipse at 50% 0%,rgba(212,168,67,.06) 0%,transparent 60%); pointer-events:none; }
+
+.card-header { padding:20px 28px 16px; display:flex; justify-content:space-between; align-items:center; }
+.brand { display:flex; align-items:center; gap:10px; }
+.brand-icon { font-size:22px; color:#d4a843; }
+.brand-name { font-family:'Playfair Display',serif; font-size:17px; font-weight:700; color:#e8d5a0; line-height:1; }
+.brand-name em { font-style:italic; font-weight:400; color:#d4a843; }
+.brand-sub { font-size:9px; font-weight:500; letter-spacing:3px; text-transform:uppercase; color:rgba(212,168,67,.45); margin-top:3px; }
+.diag-tag { font-size:10px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:#d4a843; background:rgba(212,168,67,.08); border:1px solid rgba(212,168,67,.22); border-radius:30px; padding:5px 14px; }
+.header-sep { height:1px; background:linear-gradient(90deg,transparent,rgba(212,168,67,.12),transparent); margin:0 28px; }
+
+.board-section { padding:22px 28px 24px; }
+.board-area { display:grid; grid-template-columns:16px 1fr; grid-template-rows:1fr 16px; }
+.rank-labels { grid-column:1; grid-row:1; display:flex; flex-direction:column; }
+.rank-label { flex:1; display:flex; align-items:center; justify-content:center; font-size:10px; color:#38385a; }
+.board { grid-column:2; grid-row:1; display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(8,1fr); border-radius:5px; overflow:hidden; box-shadow:0 0 0 1px rgba(0,0,0,.6),0 10px 40px rgba(0,0,0,.6); aspect-ratio:1; }
+.square { display:flex; align-items:center; justify-content:center; overflow:hidden; min-width:0; min-height:0; }
+.square.light { background:#f0d9b5; }
+.square.dark  { background:#b58863; }
+.square svg { width:80%; height:80%; flex-shrink:0; }
+.file-labels { grid-column:2; grid-row:2; display:grid; grid-template-columns:repeat(8,1fr); padding-top:4px; }
+.file-label { text-align:center; font-size:10px; color:#38385a; }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <div class="controls-title">⚙ Générer un diagramme</div>
+  <div class="fen-row">
+    <input class="fen-input" id="fenInput" type="text" placeholder="Coller un FEN… ex: rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR">
+    <button class="btn btn-gold" onclick="applyFen()">Générer</button>
+  </div>
+  <div class="fen-error" id="fenError">❌ FEN invalide — vérifie le format.</div>
+  <div class="ctrl-row">
+    <span class="ctrl-label">Orientation</span>
+    <div class="toggle-group">
+      <button class="toggle active" id="toggleW" onclick="setFlip(false)">⬜ Blancs bas</button>
+      <button class="toggle" id="toggleB" onclick="setFlip(true)">⬛ Noirs bas</button>
+    </div>
+  </div>
+  <div class="ctrl-row">
+    <span class="ctrl-label">Trait</span>
+    <div class="toggle-group">
+      <button class="toggle active" id="turnNone" onclick="setTurn('none')">— Aucun</button>
+      <button class="toggle" id="turnW" onclick="setTurn('w')"><span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:#fff;border:1.5px solid #888;vertical-align:middle;margin-right:4px"></span>Blancs</button>
+      <button class="toggle" id="turnB" onclick="setTurn('b')"><span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:#111;border:1.5px solid rgba(255,255,255,.3);vertical-align:middle;margin-right:4px"></span>Noirs</button>
+    </div>
+  </div>
+  <div class="actions-row">
+    <button class="btn btn-gold" id="pngBtn" onclick="downloadPNG()">🖼 Télécharger PNG</button>
+  </div>
+</div>
+
+<div class="card" id="card">
+  <div class="card-header">
+    <div class="brand">
+      <div class="brand-icon">♟</div>
+      <div>
+        <div class="brand-name">Club <em>Blitzstream</em></div>
+        
+      </div>
+    </div>
+    <div class="diag-tag">Position</div>
+  </div>
+  <div class="header-sep"></div>
+  <div class="board-section">
+    <div class="board-area">
+      <div class="rank-labels" id="rankLabels"></div>
+      <div class="board" id="board"></div>
+      <div></div>
+      <div class="file-labels" id="fileLabels"></div>
+    </div>
+  </div>
+  <div class="card-footer" id="cardFooter" style="display:none;padding:0 28px 20px">
+    <div class="turn-dot" id="turnDot"></div>
+  </div>
+</div>
+
+<script>
+const PIECES_SVG = {
+  wK:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,11.63 L 22.5,6" stroke-linejoin="miter"/><path d="M 20,8 L 25,8" stroke-linejoin="miter"/><path d="M 22.5,25 C 22.5,25 27,17.5 25.5,14.5 C 25.5,14.5 24.5,12 22.5,12 C 20.5,12 19.5,14.5 19.5,14.5 C 18,17.5 22.5,25 22.5,25" fill="#fff" stroke-linecap="butt" stroke-linejoin="miter"/><path d="M 12.5,37 C 18,40.5 27,40.5 32.5,37 L 32.5,30 C 32.5,30 41.5,25.5 38.5,19.5 C 34.5,13 25,16 22.5,23.5 L 22.5,27 L 22.5,23.5 C 20,16 10.5,13 6.5,19.5 C 3.5,25.5 12.5,30 12.5,30 L 12.5,37 z" fill="#fff" stroke="#000"/><path d="M 12.5,30 C 18,27 27,27 32.5,30" fill="none"/><path d="M 12.5,33.5 C 18,30.5 27,30.5 32.5,33.5" fill="none"/><path d="M 12.5,37 C 18,34 27,34 32.5,37" fill="none"/></g></svg>`,
+  wQ:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38.5,13.5 L 31,25 L 30.7,10.9 L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14.3,10.9 L 14,25 L 6.5,13.5 L 9,26 z"/><path d="M 9,26 C 9,28 10.5,28 11.5,30 C 12.5,31.5 12.5,31 12,33.5 C 10.5,34.5 11,36 11,36 C 9.5,37.5 11,38.5 11,38.5 C 17.5,39.5 27.5,39.5 34,38.5 C 34,38.5 35.5,37.5 34,36 C 34,36 34.5,34.5 33,33.5 C 32.5,31 32.5,31.5 33.5,30 C 34.5,28 36,28 36,26 C 27.5,24.5 17.5,24.5 9,26 z"/><path d="M 11.5,30 C 15,29 30,29 33.5,30" fill="none"/><path d="M 12,33.5 C 18,32.5 27,32.5 33,33.5" fill="none"/><circle cx="6" cy="12" r="2"/><circle cx="14" cy="9" r="2"/><circle cx="22.5" cy="8" r="2"/><circle cx="31" cy="9" r="2"/><circle cx="39" cy="12" r="2"/></g></svg>`,
+  wR:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z" stroke-linecap="butt"/><path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z" stroke-linecap="butt"/><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14" stroke-linecap="butt"/><path d="M 34,14 L 31,17 L 14,17 L 11,14"/><path d="M 31,17 L 31,29.5 L 14,29.5 L 14,17" stroke-linecap="butt" stroke-linejoin="miter"/><path d="M 31,29.5 L 32.5,32 L 12.5,32 L 14,29.5"/><path d="M 11,14 L 34,14" fill="none" stroke-linejoin="miter"/></g></svg>`,
+  wB:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.65,38.99 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z"/><path d="M 25 8 A 2.5 2.5 0 1 1 20,8 A 2.5 2.5 0 1 1 25 8 z"/></g><path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18" fill="none" stroke="#000" stroke-linejoin="miter"/></svg>`,
+  wN:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18" fill="#fff"/><path d="M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C 13.27,9.506 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.28,8.008 21,7 C 22,7 22,10 22,10" fill="#fff"/><path d="M 9.5 25.5 A 0.5 0.5 0 1 1 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z" fill="#000" stroke="#000"/><path d="M 15 15.5 A 0.5 1.5 0 1 1 14,15.5 A 0.5 1.5 0 1 1 15 15.5 z" fill="#000" stroke="#000" transform="matrix(0.866,0.5,-0.5,0.866,9.693,-5.173)"/></g></svg>`,
+  wP:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><path d="M 22,9 C 19.79,9 18,10.79 18,13 C 18,13.89 18.29,14.71 18.78,15.38 C 16.83,16.5 15.5,18.59 15.5,21 C 15.5,23.03 16.44,24.84 17.91,26.03 C 14.91,27.09 10.5,31.58 10.5,39.5 L 33.5,39.5 C 33.5,31.58 29.09,27.09 26.09,26.03 C 27.56,24.84 28.5,23.03 28.5,21 C 28.5,18.59 27.17,16.5 25.22,15.38 C 25.71,14.71 26,13.89 26,13 C 26,10.79 24.21,9 22,9 z" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+  bK:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,11.63 L 22.5,6" stroke-linejoin="miter"/><path d="M 22.5,25 C 22.5,25 27,17.5 25.5,14.5 C 25.5,14.5 24.5,12 22.5,12 C 20.5,12 19.5,14.5 19.5,14.5 C 18,17.5 22.5,25 22.5,25" fill="#000" stroke-linecap="butt" stroke-linejoin="miter"/><path d="M 12.5,37 C 18,40.5 27,40.5 32.5,37 L 32.5,30 C 32.5,30 41.5,25.5 38.5,19.5 C 34.5,13 25,16 22.5,23.5 L 22.5,27 L 22.5,23.5 C 20,16 10.5,13 6.5,19.5 C 3.5,25.5 12.5,30 12.5,30 L 12.5,37 z" fill="#000" stroke="#000"/><path d="M 20,8 L 25,8" stroke-linejoin="miter"/><path d="M 32,29.5 C 32,29.5 40.5,25.5 38.03,19.85 C 34.15,14 25,18 22.5,24.5 L 22.5,26.6 L 22.5,24.5 C 20,18 10.85,14 6.97,19.85 C 4.5,25.5 13,29.5 13,29.5" fill="none" stroke="#fff"/><path d="M 12.5,30 C 18,27 27,27 32.5,30 M 12.5,33.5 C 18,30.5 27,30.5 32.5,33.5 M 12.5,37 C 18,34 27,34 32.5,37" fill="none" stroke="#fff"/></g></svg>`,
+  bQ:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#000" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g stroke="none"><circle cx="6" cy="12" r="2.75"/><circle cx="14" cy="9" r="2.75"/><circle cx="22.5" cy="8" r="2.75"/><circle cx="31" cy="9" r="2.75"/><circle cx="39" cy="12" r="2.75"/></g><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38.5,13.5 L 31,25 L 30.7,10.9 L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14.3,10.9 L 14,25 L 6.5,13.5 L 9,26 z" stroke-linecap="butt"/><path d="M 9,26 C 9,28 10.5,28 11.5,30 C 12.5,31.5 12.5,31 12,33.5 C 10.5,34.5 11,36 11,36 C 9.5,37.5 11,38.5 11,38.5 C 17.5,39.5 27.5,39.5 34,38.5 C 34,38.5 35.5,37.5 34,36 C 34,36 34.5,34.5 33,33.5 C 32.5,31 32.5,31.5 33.5,30 C 34.5,28 36,28 36,26 C 27.5,24.5 17.5,24.5 9,26 z" stroke-linecap="butt"/><path d="M 11,38.5 A 35,35 1 0 0 34,38.5" fill="none" stroke="#fff" stroke-linecap="butt"/><path d="M 11,29 A 35,35 1 0 1 34,29" fill="none" stroke="#fff"/><path d="M 12.5,31.5 L 32.5,31.5" fill="none" stroke="#fff"/><path d="M 11.5,34.5 A 35,35 1 0 0 33.5,34.5" fill="none" stroke="#fff"/><path d="M 10.5,37.5 A 35,35 1 0 0 34.5,37.5" fill="none" stroke="#fff"/></g></svg>`,
+  bR:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#000" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z" stroke-linecap="butt"/><path d="M 12.5,32 L 14,29.5 L 31,29.5 L 32.5,32 L 12.5,32 z" stroke-linecap="butt"/><path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z" stroke-linecap="butt"/><path d="M 14,29.5 L 14,16.5 L 31,16.5 L 31,29.5 L 14,29.5 z" stroke-linecap="butt" stroke-linejoin="miter"/><path d="M 14,16.5 L 11,14 L 34,14 L 31,16.5 L 14,16.5 z" stroke-linecap="butt"/><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14 L 11,14 z" stroke-linecap="butt"/><path d="M 12,35.5 L 33,35.5" fill="none" stroke="#fff" stroke-width="1"/><path d="M 13,31.5 L 32,31.5" fill="none" stroke="#fff" stroke-width="1"/><path d="M 14,29.5 L 31,29.5" fill="none" stroke="#fff" stroke-width="1"/><path d="M 14,16.5 L 31,16.5" fill="none" stroke="#fff" stroke-width="1"/><path d="M 11,14 L 34,14" fill="none" stroke="#fff" stroke-width="1"/></g></svg>`,
+  bB:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.65,38.99 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z" fill="#000"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z" fill="#000"/><path d="M 25 8 A 2.5 2.5 0 1 1 20,8 A 2.5 2.5 0 1 1 25 8 z" fill="#000"/><path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18" fill="none" stroke="#fff" stroke-linejoin="miter"/></g></svg>`,
+  bN:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18" fill="#000"/><path d="M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C 13.27,9.506 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.28,8.008 21,7 C 22,7 22,10 22,10" fill="#000"/><path d="M 9.5 25.5 A 0.5 0.5 0 1 1 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z" fill="#fff" stroke="#fff"/><path d="M 15 15.5 A 0.5 1.5 0 1 1 14,15.5 A 0.5 1.5 0 1 1 15 15.5 z" fill="#fff" stroke="#fff" transform="matrix(0.866,0.5,-0.5,0.866,9.693,-5.173)"/><path d="M 24.55,10.4 L 24.1,11.85 L 24.6,12 C 27.75,13 30.25,14.49 32.5,18.75 C 34.75,23.01 35.75,29.06 35.25,39 L 35.2,39.5 L 37.45,39.5 L 37.5,39 C 38,28.94 36.62,22.15 34.25,17.66 C 31.88,13.17 28.46,11.02 25.06,10.5 L 24.55,10.4 z" fill="#fff" stroke="none"/></g></svg>`,
+  bP:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><path d="M 22,9 C 19.79,9 18,10.79 18,13 C 18,13.89 18.29,14.71 18.78,15.38 C 16.83,16.5 15.5,18.59 15.5,21 C 15.5,23.03 16.44,24.84 17.91,26.03 C 14.91,27.09 10.5,31.58 10.5,39.5 L 33.5,39.5 C 33.5,31.58 29.09,27.09 26.09,26.03 C 27.56,24.84 28.5,23.03 28.5,21 C 28.5,18.59 27.17,16.5 25.22,15.38 C 25.71,14.71 26,13.89 26,13 C 26,10.79 24.21,9 22,9 z" fill="#000" stroke="#000" stroke-width="1.5" stroke-linecap="round"/></svg>`
+};
+
+function svgToDataUri(s) {
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(s)));
+}
+
+const FEN_MAP = {
+  'K':'wK','Q':'wQ','R':'wR','B':'wB','N':'wN','P':'wP',
+  'k':'bK','q':'bQ','r':'bR','b':'bB','n':'bN','p':'bP'
+};
+
+const DEFAULT_FEN = 'r2q1rk1/ppb2ppp/3p1n2/4p3/4P3/2N1BN2/PPP2PPP/R2Q1RK1 w - - 0 1';
+let currentFen = DEFAULT_FEN;
+let flipped = false;
+let currentTurn = 'none';
+
+function parseFen(fen) {
+  const parts = fen.trim().split(/\s+/);
+  const rows  = parts[0].split('/');
+  if (rows.length !== 8) return null;
+  const board = [];
+  for (const row of rows) {
+    const rank = [];
+    for (const ch of row) {
+      if (/\d/.test(ch)) { for (let i=0;i<+ch;i++) rank.push(''); }
+      else { const pc = FEN_MAP[ch]; if (!pc) return null; rank.push(pc); }
+    }
+    if (rank.length !== 8) return null;
+    board.push(rank);
+  }
+  return board;
+}
+
+function renderBoard() {
+  const board = parseFen(currentFen);
+  if (!board) return;
+
+  const F_NORM = ['a','b','c','d','e','f','g','h'];
+  const F_FLIP = ['h','g','f','e','d','c','b','a'];
+  const files  = flipped ? F_FLIP : F_NORM;
+
+  // Rank labels
+  const rl = document.getElementById('rankLabels');
+  rl.innerHTML = '';
+  for (let r=0; r<8; r++) {
+    const d = document.createElement('div');
+    d.className = 'rank-label';
+    d.textContent = flipped ? r+1 : 8-r;
+    rl.appendChild(d);
+  }
+
+  // File labels
+  const fl = document.getElementById('fileLabels');
+  fl.innerHTML = '';
+  files.forEach(lbl => {
+    const d = document.createElement('div');
+    d.className = 'file-label'; d.textContent = lbl; fl.appendChild(d);
+  });
+
+  // Squares
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  for (let ri=0; ri<8; ri++) {
+    for (let fi=0; fi<8; fi++) {
+      const ari = flipped ? 7-ri : ri;
+      const afi = flipped ? 7-fi : fi;
+      const pc  = board[ari][afi];
+      const sq  = document.createElement('div');
+      sq.className = 'square ' + ((ri+fi)%2===0 ? 'light' : 'dark');
+      if (pc && PIECES_SVG[pc]) sq.innerHTML = PIECES_SVG[pc];
+      boardEl.appendChild(sq);
+    }
+  }
+}
+
+function setTurn(t) {
+  currentTurn = t;
+  ['none','w','b'].forEach(v => {
+    const btn = document.getElementById('turn' + (v==='none'?'None':v==='w'?'W':'B'));
+    if(btn) btn.classList.toggle('active', v===t);
+  });
+  const footer = document.getElementById('cardFooter');
+  const dot    = document.getElementById('turnDot');
+  if(t === 'none') { footer.style.display='none'; }
+  else { footer.style.display='flex'; dot.className='turn-dot '+(t==='w'?'white':'black'); }
+}
+
+function applyFen() {
+  const val = document.getElementById('fenInput').value.trim();
+  const fen = val || DEFAULT_FEN;
+  const errEl = document.getElementById('fenError');
+  if (!parseFen(fen)) { errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+  currentFen = fen;
+  renderBoard();
+}
+
+function setFlip(f) {
+  flipped = f;
+  document.getElementById('toggleW').classList.toggle('active', !f);
+  document.getElementById('toggleB').classList.toggle('active',  f);
+  renderBoard();
+}
+
+// ── PNG EXPORT ──────────────────────────────────────────────────────────
+async function downloadPNG() {
+  const btn = document.getElementById('pngBtn');
+  btn.textContent = '⏳ Génération…'; btn.disabled = true;
+
+  const scale  = 3;
+  const MARGIN = 24;
+  const CW     = 500;
+  const PAD    = 28;
+  const RLBL   = 16;
+  const SQ     = Math.floor((CW - PAD*2 - RLBL) / 8);
+  const BW     = SQ * 8;
+
+  const HEADER_H = 88;
+  const BOARD_TOP = HEADER_H + 22;
+  const CH = BOARD_TOP + BW + 16 + (currentTurn!=='none'?44:22);
+
+  const TW = CW + MARGIN*2;
+  const TH = CH + MARGIN*2;
+  const CX = MARGIN, CY = MARGIN;
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = TW * scale;
+  canvas.height = TH * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+
+  function rr(x,y,w,h,r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  // Background
+  const bg = ctx.createRadialGradient(TW*.4,TH*.4,0,TW*.4,TH*.4,500);
+  bg.addColorStop(0,'#0e0e1c'); bg.addColorStop(1,'#050507');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,TW,TH);
+
+  // Card
+  ctx.save(); rr(CX,CY,CW,CH,22);
+  const cg = ctx.createLinearGradient(CX,CY,CX+CW*.6,CY+CH);
+  cg.addColorStop(0,'#17172a'); cg.addColorStop(.6,'#0e0e18'); cg.addColorStop(1,'#0b0b14');
+  ctx.fillStyle=cg; ctx.fill();
+  ctx.strokeStyle='rgba(212,168,67,.2)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+
+  // Gold top line
+  const gg = ctx.createLinearGradient(CX,0,CX+CW,0);
+  gg.addColorStop(0,'rgba(0,0,0,0)'); gg.addColorStop(.25,'#d4a843');
+  gg.addColorStop(.5,'#f0c96a'); gg.addColorStop(.75,'#d4a843');
+  gg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=gg; ctx.fillRect(CX,CY,CW,2.5);
+
+  // Header
+  const hPAD = CX+PAD;
+  const hY   = CY+20;
+  ctx.fillStyle='#d4a843'; ctx.font='22px serif';
+  ctx.fillText('♟', hPAD, hY+28);
+  ctx.fillStyle='#e8d5a0'; ctx.font='bold 17px Georgia,serif';
+  ctx.fillText('Club ', hPAD+28, hY+26);
+  const cw2 = ctx.measureText('Club ').width;
+  ctx.fillStyle='#d4a843'; ctx.font='italic 17px Georgia,serif';
+  ctx.fillText('Blitzstream', hPAD+28+cw2, hY+26);
+  ctx.fillStyle='rgba(212,168,67,.45)'; ctx.font='500 8px Arial,sans-serif';
+  
+
+  // Tag pill
+  const tw=90, th=24, tx=CX+CW-PAD-tw, ty=hY+6;
+  ctx.save(); rr(tx,ty,tw,th,12);
+  ctx.fillStyle='rgba(212,168,67,.08)'; ctx.fill();
+  ctx.strokeStyle='rgba(212,168,67,.28)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle='#d4a843'; ctx.font='700 10px Arial,sans-serif';
+  ctx.textAlign='center'; ctx.fillText('POSITION', tx+tw/2, ty+16);
+  ctx.textAlign='left'; ctx.restore();
+
+  // Header sep
+  const sg = ctx.createLinearGradient(hPAD,0,CX+CW-PAD,0);
+  sg.addColorStop(0,'rgba(0,0,0,0)'); sg.addColorStop(.5,'rgba(212,168,67,.14)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=sg; ctx.fillRect(hPAD, CY+HEADER_H-6, CW-PAD*2, 1);
+
+  // Board
+  const bX = CX + PAD + RLBL;
+  const bY = CY + BOARD_TOP;
+  const F_NORM = ['a','b','c','d','e','f','g','h'];
+  const F_FLIP = ['h','g','f','e','d','c','b','a'];
+  const files  = flipped ? F_FLIP : F_NORM;
+
+  for (let ri=0;ri<8;ri++) for (let fi=0;fi<8;fi++) {
+    ctx.fillStyle = (ri+fi)%2===0 ? '#f0d9b5' : '#b58863';
+    ctx.fillRect(bX+fi*SQ, bY+ri*SQ, SQ, SQ);
+  }
+  ctx.strokeStyle='rgba(0,0,0,.55)'; ctx.lineWidth=1;
+  ctx.strokeRect(bX, bY, BW, BW);
+
+  // Pieces
+  const board = parseFen(currentFen);
+  const jobs  = [];
+  for (let ri=0; ri<8; ri++) for (let fi=0; fi<8; fi++) {
+    const ari = flipped ? 7-ri : ri;
+    const afi = flipped ? 7-fi : fi;
+    const pc  = board[ari][afi];
+    if (!pc || !PIECES_SVG[pc]) continue;
+    const img = new Image();
+    const _ri=ri, _fi=fi;
+    jobs.push(new Promise(res => {
+      img.onload = () => { const m=SQ*.05; ctx.drawImage(img, bX+_fi*SQ+m, bY+_ri*SQ+m, SQ-m*2, SQ-m*2); res(); };
+      img.onerror = res;
+      img.src = svgToDataUri(PIECES_SVG[pc]);
+    }));
+  }
+  await Promise.all(jobs);
+
+  // Rank labels
+  ctx.fillStyle='#38385a'; ctx.font='500 10px Arial,sans-serif'; ctx.textAlign='center';
+  for (let r=0; r<8; r++) ctx.fillText(flipped?r+1:8-r, CX+PAD+RLBL/2, bY+r*SQ+SQ/2+3);
+
+  // File labels
+  for (let f=0; f<8; f++) ctx.fillText(files[f], bX+f*SQ+SQ/2, bY+BW+13);
+  ctx.textAlign='left';
+
+  // Turn dot
+  if (currentTurn !== 'none') {
+    const dotX = CX+PAD+RLBL+8, dotY = bY+BW+32;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(dotX, dotY, 7, 0, Math.PI*2);
+    if(currentTurn==='w'){
+      const dg=ctx.createRadialGradient(dotX-2,dotY-2,0,dotX,dotY,7);
+      dg.addColorStop(0,'#fff');dg.addColorStop(1,'#ccc');
+      ctx.fillStyle=dg;ctx.fill();
+      ctx.strokeStyle='rgba(0,0,0,.25)';ctx.lineWidth=1.5;ctx.stroke();
+    } else {
+      const dg=ctx.createRadialGradient(dotX-2,dotY-2,0,dotX,dotY,7);
+      dg.addColorStop(0,'#555');dg.addColorStop(1,'#111');
+      ctx.fillStyle=dg;ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=1.5;ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Gold bottom line
+  ctx.fillStyle=gg; ctx.fillRect(CX, CY+CH-2, CW, 2);
+
+  // Download
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'diagramme-blitzstream.png';
+  a.click();
+
+  btn.textContent = '🖼 Télécharger PNG'; btn.disabled = false;
+}
+
+// Init
+renderBoard();
+</script>
+</body>
+</html>
